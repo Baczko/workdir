@@ -1,0 +1,46 @@
+# Weryfikacja synchronizacji master -> master-gcp (repo na GitHubie, pipeline w Azure DevOps)
+#
+#  - PR do master-gcp        -> sprawdza referencję 'cherry picked from commit' / znacznik [gcp-only]
+#  - push na master/master-gcp oraz nocny harmonogram -> szuka brakujących backportów
+
+trigger:
+  branches:
+    include:
+      - master
+      - master-gcp
+
+pr:
+  branches:
+    include:
+      - master-gcp
+
+schedules:
+  - cron: '0 4 * * 1-5'          # 04:00 UTC, pon-pt
+    displayName: Nocna weryfikacja master -> master-gcp
+    branches:
+      include:
+        - master
+    always: true                  # uruchamiaj nawet bez nowych commitów
+
+variables:
+  # Od kiedy sprawdzać historię (puste = cała od rozgałęzienia), np. '2026-09-01'
+  since: ''
+  # Ścieżki migracyjne wykluczane z porównania kodu, rozdzielone przecinkami, np.:
+  # 'src/main/java/pl/firma/gcp/**,deploy/gcp/**'  (puste = pomiń test różnic)
+  migrationPaths: ''
+
+pool:
+  vmImage: ubuntu-latest
+
+steps:
+  - checkout: self
+    fetchDepth: 0                 # pełna historia, bez niej cherry-pick/patch-id nie zadziała
+    persistCredentials: true      # pozwala skryptom zrobić git fetch
+
+  - pwsh: ./scripts/check-backport-pr.ps1
+    displayName: Sprawdź backport (PR do master-gcp)
+    condition: eq(variables['Build.Reason'], 'PullRequest')
+
+  - pwsh: ./scripts/verify-gcp-sync.ps1 -Since '$(since)' -MigrationPaths '$(migrationPaths)'
+    displayName: Sprawdź brakujące backporty (master -> master-gcp)
+    condition: ne(variables['Build.Reason'], 'PullRequest')
