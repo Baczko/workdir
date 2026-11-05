@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
   Backport zmergowanego PR-a z master na master-gcp (git cherry-pick -x) - bez GitHub CLI.
 

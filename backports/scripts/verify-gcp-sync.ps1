@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
   Sprawdza, czy każdy commit z master ma odpowiednik na master-gcp.
 

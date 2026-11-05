@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
   Bramka dla PR-ów do master-gcp: wymaga referencji do commita z master albo znacznika [gcp-only].
 
