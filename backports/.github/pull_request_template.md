@@ -13,7 +13,7 @@
 - [ ] Zmiana musi trafić też na `master-gcp` -> dodaj label **`needs-gcp-backport`**
 - [ ] Zmiana NIE jest potrzebna na `master-gcp`. Uzasadnienie:
 
-Po merge'u uruchom backport: `.\scripts\backport.ps1 -PullRequest <numer>`
+Po merge'u uruchom backport: `.\scripts\backport.ps1 -PullRequest <numer>` (skrypt wypycha gałąź i otwiera wypełniony formularz PR-a; potem ręcznie zmień label na `backported`)
 
 ## Jeśli PR jest do `master-gcp`
 Backport zrobiony przez `git cherry-pick -x` (robi to `scripts/backport.ps1`).
