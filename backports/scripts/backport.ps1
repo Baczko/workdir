@@ -105,7 +105,34 @@ else {
     $label = "commita $short"
     $branch = "backport/$short-to-$Target"
 }
-$body = "Backport $label z ``$Source```n`n(cherry picked from commit $commit)"
+# --- link do story z Azure DevOps ----------------------------------------------------
+# Standard zespołu: numer story na początku tytułu commita w nawiasach kwadratowych, np. "[12345] Opis".
+# Gdy go nie ma w tytule, szukamy w treści commita (lista commitów ze squasha / opis PR-a):
+# linii zaczynającej się od [12345] albo zapisu AB#12345.
+# Gdy nic nie znajdziemy, w opisie zostaje szablon linku do ręcznego uzupełnienia.
+$storyTemplate = '[AB#WorkItemNumber](https://dev.azure.com/_workitems/edit/WorkItemNumber/)'
+$fullMessage   = Invoke-Native git @('log', '-1', '--format=%B', $commit)
+
+$storyIds = @()
+if ($subject -match '^\s*\[(\d+)\]') {
+    $storyIds = @($Matches[1])
+}
+else {
+    $storyIds = @([regex]::Matches($fullMessage, '(?m)(?:^[ \t]*(?:[*-][ \t]+)?\[(\d{3,})\]|AB#(\d{3,}))') |
+        ForEach-Object { if ($_.Groups[1].Success) { $_.Groups[1].Value } else { $_.Groups[2].Value } } |
+        Select-Object -Unique)
+}
+
+if ($storyIds.Count -gt 0) {
+    $storyLine = ($storyIds | ForEach-Object { "[AB#$_](https://dev.azure.com/_workitems/edit/$_/)" }) -join ', '
+    Write-Host "Story: $($storyIds -join ', ')"
+}
+else {
+    $storyLine = $storyTemplate
+    Write-Warning 'Nie znalazłem numeru story w commicie. W formularzu PR-a uzupełnij sekcję Story ręcznie (zamień WorkItemNumber).'
+}
+
+$body = "## Story`n$storyLine`n`nBackport $label z ``$Source```n`n(cherry picked from commit $commit)"
 
 Write-Host "Commit do backportu: $short  $subject"
 
@@ -178,11 +205,6 @@ Write-Host $prUrl
 
 if (-not $NoBrowser) {
     try { Start-Process $prUrl } catch { Write-Warning 'Nie udało się otworzyć przeglądarki - użyj linku powyżej.' }
-}
-
-if ($PullRequest -gt 0) {
-    Write-Host ''
-    Write-Host "Pamiętaj: na PR #$PullRequest zmień label 'needs-gcp-backport' na 'backported'." -ForegroundColor Yellow
 }
 
 if (-not $Continue) {
